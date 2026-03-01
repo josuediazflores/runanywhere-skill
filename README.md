@@ -9,11 +9,12 @@ This skill enables Claude Code to assist with integrating RunAnywhere's privacy-
 ### What is RunAnywhere?
 
 RunAnywhere lets you add AI features to your app that run entirely on-device:
-- **LLM Text Generation** - Run Llama, Mistral, Qwen, SmolLM locally via llama.cpp
+- **LLM Text Generation** - Run LFM2, Llama, Mistral, Qwen, SmolLM locally via llama.cpp
+- **Vision Language Models (VLM)** - On-device visual understanding with camera/image input (iOS/Web)
 - **Speech-to-Text** - Whisper-based transcription
 - **Text-to-Speech** - Neural voice synthesis via Piper
 - **Voice Agent Pipeline** - Complete VAD → STT → LLM → TTS orchestration
-- **Vision Language Models** - Visual understanding (iOS/Web only)
+- **Tool Calling & Structured Output** - Function calling and JSON schema-guided generation
 
 All processing happens locally—no cloud, no latency, no data leaves the device.
 
@@ -21,11 +22,11 @@ All processing happens locally—no cloud, no latency, no data leaves the device
 
 ### Comprehensive Platform Coverage
 
--  **Swift (iOS/macOS)** - Complete integration guide with Swift Package Manager setup
--  **Kotlin (Android)** - Full Gradle configuration and usage examples
--  **Web (Browser)** - WebAssembly setup with bundler configuration
--  **React Native** - Cross-platform mobile integration
--  **Flutter** - Dart/Flutter implementation guide
+- **Swift (iOS/macOS)** - Complete integration guide with Swift Package Manager setup
+- **Kotlin (Android)** - Full Gradle configuration and usage examples
+- **Web (Browser)** - 3-package WebAssembly SDK with VLM, streaming, and Web Worker support
+- **React Native** - Cross-platform mobile integration
+- **Flutter** - Dart/Flutter implementation guide
 
 ### Deep Integration Guidance
 
@@ -34,14 +35,15 @@ All processing happens locally—no cloud, no latency, no data leaves the device
 - **Complete API Reference** - All SDK methods with working code examples
 - **Error Handling** - Common issues and solutions for each platform
 - **Performance Optimization** - Memory management, streaming patterns, best practices
+- **Vision Language Models** - Camera-based VLM with Web Worker architecture (iOS/Web)
 - **Voice Agent Pipelines** - Complete STT → LLM → TTS workflows
 
 ### Progressive Disclosure Design
 
 The skill uses a three-tier information architecture:
-1. **SKILL.md** - Core workflow and platform selection (~270 lines)
-2. **Platform Guides** - Detailed references loaded on-demand (swift.md, kotlin.md, etc.)
-3. **Model Guide** - Comprehensive model selection and optimization guidance
+1. **SKILL.md** - Core workflow and platform selection
+2. **Platform Guides** - Detailed references loaded on-demand (swift.md, kotlin.md, web.md, etc.)
+3. **Model Guide** - Model selection with LFM2, VLM, and quantization guidance
 
 This minimizes context usage while providing complete information when needed.
 
@@ -65,7 +67,7 @@ This minimizes context usage while providing complete information when needed.
 
 ```bash
 # Clone the repository
-git clone https://github.com/josuediazflores/runanywhere-skill.git
+git clone https://github.com/RunanywhereAI/runanywhere-skill.git
 
 # Install from directory
 claude-code install runanywhere-skill/
@@ -140,9 +142,10 @@ Models are compressed using quantization:
 ### Model Formats
 
 - **LLM**: GGUF format (via llama.cpp)
+- **VLM**: GGUF format (model + mmproj files)
 - **STT**: ONNX format (Whisper models)
 - **TTS**: ONNX format (Piper voices)
-- **VAD**: ONNX format (Silero VAD)
+- **VAD**: ONNX format (Silero VAD v5)
 
 ### Memory Requirements
 
@@ -198,7 +201,7 @@ As RunAnywhere SDKs evolve, this skill should be updated:
 
 Contributions are welcome! To improve this skill:
 
-1. **Report Issues** - Found incorrect API usage? [Open an issue](https://github.com/josuediazflores/runanywhere-skill/issues)
+1. **Report Issues** - Found incorrect API usage? [Open an issue](https://github.com/RunanywhereAI/runanywhere-skill/issues)
 2. **Update Documentation** - SDK changed? Submit a pull request
 3. **Add Examples** - Have useful patterns? Share them
 
@@ -228,7 +231,7 @@ This skill is licensed under Apache 2.0, matching the RunAnywhere SDK license.
 
 - iOS: [examples/ios/RunAnywhereAI](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/ios/RunAnywhereAI)
 - Android: [examples/android/RunAnywhereAI](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/android/RunAnywhereAI)
-- Web: [examples/web/RunAnywhereAI](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/web/RunAnywhereAI)
+- Web: [web-starter-app](https://github.com/RunanywhereAI/web-starter-app) (Chat, Vision, Voice demo)
 - React Native: [examples/react-native/RunAnywhereAI](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/react-native/RunAnywhereAI)
 - Flutter: [examples/flutter/RunAnywhereAI](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/flutter/RunAnywhereAI)
 
@@ -240,7 +243,7 @@ This skill is licensed under Apache 2.0, matching the RunAnywhere SDK license.
 ## Support
 
 For issues specific to this skill:
-- Open an issue on [GitHub Issues](https://github.com/josuediazflores/runanywhere-skill/issues)
+- Open an issue on [GitHub Issues](https://github.com/RunanywhereAI/runanywhere-skill/issues)
 
 For RunAnywhere SDK questions:
 - Join [RunAnywhere Discord](https://discord.gg/N359FBbDVd)

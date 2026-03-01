@@ -10,8 +10,10 @@ RunAnywhere supports GGUF-format models via llama.cpp. Choose based on device me
 
 | Model | Size | RAM Required | Quality | Speed | Use Case |
 |-------|------|--------------|---------|-------|----------|
+| **LFM2 350M** | ~250MB | 350MB | Good | Very Fast | Web/mobile, lightweight apps |
 | **SmolLM2 360M** | ~400MB | 500MB | Basic | Very Fast | Lightweight apps, quick responses |
 | **Qwen 2.5 0.5B** | ~500MB | 600MB | Good | Fast | Multilingual, balanced performance |
+| **LFM2 1.2B Tool** | ~800MB | 1GB | Very Good | Fast | Tool/function calling |
 | **Llama 3.2 1B** | ~1GB | 1.2GB | Good | Fast | General purpose, good quality |
 | **Qwen 2.5 1.5B** | ~1.5GB | 2GB | Very Good | Medium | Advanced reasoning |
 | **Llama 3.2 3B** | ~2.5GB | 3GB | Excellent | Medium | High-quality responses |
@@ -48,6 +50,12 @@ Common repositories:
 **Example URLs:**
 
 ```
+# LFM2 350M Q4_K_M (recommended for web)
+https://huggingface.co/LiquidAI/LFM2-350M-GGUF/resolve/main/LFM2-350M-Q4_K_M.gguf
+
+# LFM2 1.2B Tool Q4_K_M (tool/function calling)
+https://huggingface.co/LiquidAI/LFM2-1.2B-Tool-GGUF/resolve/main/LFM2-1.2B-Tool-Q4_K_M.gguf
+
 # SmolLM2 360M Q8_0
 https://huggingface.co/prithivMLmods/SmolLM2-360M-GGUF/resolve/main/SmolLM2-360M.Q8_0.gguf
 
@@ -64,11 +72,13 @@ https://huggingface.co/bartowski/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mist
 ### Device-Specific Recommendations
 
 #### Mobile (< 4GB RAM)
+- LFM2 350M Q4_K_M (~250MB)
 - SmolLM2 360M Q8_0 (~400MB)
 - Qwen 2.5 0.5B Q4_K_M (~500MB)
 - Llama 3.2 1B Q4_K_M (~1GB)
 
 #### Mid-Range (4-8GB RAM)
+- LFM2 1.2B Tool Q4_K_M (~800MB) — tool calling
 - Llama 3.2 1B Q5_K_M (~1GB)
 - Qwen 2.5 1.5B Q5_K_M (~1.5GB)
 - Llama 3.2 3B Q4_K_M (~2.5GB)
@@ -79,6 +89,8 @@ https://huggingface.co/bartowski/Mistral-7B-Instruct-v0.3-GGUF/resolve/main/Mist
 - Mistral 7B Q5_K_M (~5GB)
 
 #### Web Browsers
+- LFM2 350M Q4_K_M (~250MB) — recommended for web
+- LFM2 1.2B Tool Q4_K_M (~800MB) — tool calling
 - Qwen 2.5 0.5B Q4_0 (~300MB)
 - SmolLM2 360M Q4_0 (~250MB)
 - Llama 3.2 1B Q4_0 (~700MB)
@@ -135,49 +147,85 @@ https://github.com/RunanywhereAI/sherpa-onnx/releases/download/runanywhere-model
 
 | Model | Size | Accuracy | Speed | Use Case |
 |-------|------|----------|-------|----------|
-| **Silero VAD v4** | ~1.5MB | Excellent | Very Fast | Real-time speech detection |
+| **Silero VAD v5** | ~5MB | Excellent | Very Fast | Real-time speech detection |
 
 **Download:**
 
 ```
-https://github.com/snakers4/silero-vad/raw/master/files/silero_vad.onnx
+https://huggingface.co/runanywhere/silero-vad-v5/resolve/main/silero_vad.onnx
 ```
 
 ## Vision Language Models (VLM)
 
 ### Supported Models
 
-| Model | Size | Capabilities | Use Case |
-|-------|------|--------------|----------|
-| **Qwen2-VL 2B Q4** | ~2GB | Image + Text | Visual understanding |
-| **LLaVA 1.5 7B Q4** | ~4GB | Image + Text | High-quality vision |
+| Model | Size | RAM Required | Capabilities | Use Case |
+|-------|------|--------------|--------------|----------|
+| **LFM2-VL 450M Q4_0** | ~500MB | 500MB | Image + Text | Lightweight vision, web/mobile |
+| **Qwen2-VL 2B Q4** | ~2GB | 2.5GB | Image + Text | Visual understanding |
+| **LLaVA 1.5 7B Q4** | ~4GB | 5GB | Image + Text | High-quality vision |
 
-**Platforms:** iOS (Metal), Web (WebGPU)
+**Platforms:** iOS (Metal), Web (WebGPU/WASM)
 
-**Note:** Not available on Android, React Native, or Flutter yet.
+**Note:** VLM is not available on Android, React Native, or Flutter yet.
+
+### VLM Model Registration (Web)
+
+VLM models require two GGUF files — the language model and the mmproj (multimodal projector):
+
+```typescript
+{
+  id: 'lfm2-vl-450m-q4_0',
+  name: 'LFM2-VL 450M Q4_0',
+  repo: 'runanywhere/LFM2-VL-450M-GGUF',
+  files: ['LFM2-VL-450M-Q4_0.gguf', 'mmproj-LFM2-VL-450M-Q8_0.gguf'],
+  framework: LLMFramework.LlamaCpp,
+  modality: ModelCategory.Multimodal,
+  memoryRequirement: 500_000_000,
+}
+```
+
+### VLM Downloads
+
+```
+# LFM2-VL 450M (recommended for web — lightweight)
+https://huggingface.co/runanywhere/LFM2-VL-450M-GGUF
+
+# Qwen2-VL 2B
+https://huggingface.co/Qwen/Qwen2-VL-2B-Instruct-GGUF
+```
 
 ## Model Selection Decision Tree
 
 ```
 Start Here
     |
+    ├─ Need vision/image understanding?
+    │   └─ Yes → LFM2-VL 450M (iOS/Web only)
+    │
+    ├─ Need tool/function calling?
+    │   └─ Yes → LFM2 1.2B Tool
+    │
     ├─ Need multilingual support?
     │   ├─ Yes → Qwen 2.5 (0.5B/1.5B)
     │   └─ No  → Continue
     │
     ├─ Available RAM?
+    │   ├─ < 500MB → LFM2 350M
     │   ├─ < 1GB   → SmolLM2 360M or Qwen 0.5B
-    │   ├─ 1-4GB   → Llama 3.2 1B
+    │   ├─ 1-4GB   → LFM2 1.2B Tool or Llama 3.2 1B
     │   ├─ 4-8GB   → Llama 3.2 3B
     │   └─ > 8GB   → Mistral 7B
     │
     ├─ Platform?
-    │   ├─ Web     → Use Q4_0 quantization (smallest)
+    │   ├─ Web     → LFM2 350M (Q4_K_M) or Q4_0 quantization
     │   ├─ Mobile  → Use Q4_K_M or Q5_K_M (balanced)
     │   └─ Desktop → Use Q5_K_M or Q8_0 (best quality)
     │
     └─ Use Case?
-        ├─ Quick responses    → SmolLM2, Qwen 0.5B
+        ├─ Quick responses    → LFM2 350M, SmolLM2, Qwen 0.5B
+        ├─ Tool calling       → LFM2 1.2B Tool
+        ├─ Vision             → LFM2-VL 450M
         ├─ Balanced           → Llama 3.2 1B/3B
         ├─ Best quality       → Mistral 7B
         └─ Reasoning/Thinking → Qwen 2.5 1.5B+

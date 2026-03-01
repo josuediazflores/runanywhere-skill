@@ -32,7 +32,7 @@ cd ios && pod install && cd ..
 
 | Component | Minimum | Recommended |
 |-----------|---------|-------------|
-| **React Native** | 0.71+ | 0.74+ |
+| **React Native** | 0.74+ | 0.74+ |
 | **iOS** | 15.1+ | 17.0+ |
 | **Android** | API 24 (7.0+) | API 28+ |
 | **Node.js** | 18+ | 20+ |
@@ -73,11 +73,8 @@ await RunAnywhere.downloadModel('smollm2-360m-q8_0', (progress) => {
   console.log(`Download: ${(progress.progress * 100).toFixed(1)}%`);
 });
 
-// Load model
-const modelInfo = await RunAnywhere.getModelInfo('smollm2-360m-q8_0');
-if (modelInfo?.localPath) {
-  await RunAnywhere.loadModel(modelInfo.localPath);
-}
+// Load model (pass model ID directly)
+await RunAnywhere.loadModel('smollm2-360m-q8_0');
 
 // Check if loaded
 const isLoaded = await RunAnywhere.isModelLoaded();
@@ -102,7 +99,7 @@ const result = await RunAnywhere.generate(
 );
 
 console.log('Response:', result.text);
-console.log('Tokens/sec:', result.tokensPerSecond);
+console.log('Tokens/sec:', result.performanceMetrics?.tokensPerSecond);
 ```
 
 ## Advanced Usage
@@ -111,20 +108,19 @@ console.log('Tokens/sec:', result.tokensPerSecond);
 
 ```typescript
 // Basic streaming
-for await (const token of RunAnywhere.generateStream('Tell me a story')) {
-  console.log(token);
-}
-
-// With metrics
-const streamResult = await RunAnywhere.generateStreamWithMetrics(
-  'Write a poem about AI'
-);
-
+const streamResult = await RunAnywhere.generateStream('Tell me a story');
 for await (const token of streamResult.stream) {
   console.log(token);
 }
 
-const metrics = await streamResult.metrics;
+// With metrics
+const streamResult2 = await RunAnywhere.generateStream('Write a poem about AI');
+
+for await (const token of streamResult2.stream) {
+  console.log(token);
+}
+
+const metrics = await streamResult2.result;
 console.log('Speed:', metrics.tokensPerSecond);
 ```
 
@@ -142,8 +138,10 @@ await ONNX.addModel({
 
 // Download and load
 await RunAnywhere.downloadModel('whisper-tiny');
-const modelInfo = await RunAnywhere.getModelInfo('whisper-tiny');
-await RunAnywhere.loadSTTModel(modelInfo.localPath);
+const sttModelPath = await RunAnywhere.getModelPath('whisper-tiny');
+if (sttModelPath) {
+  await RunAnywhere.loadSTTModel(sttModelPath);
+}
 
 // Transcribe audio
 const text = await RunAnywhere.transcribe(audioData);
@@ -164,8 +162,10 @@ await ONNX.addModel({
 
 // Download and load
 await RunAnywhere.downloadModel('piper-en-us');
-const modelInfo = await RunAnywhere.getModelInfo('piper-en-us');
-await RunAnywhere.loadTTSModel(modelInfo.localPath);
+const ttsModelPath = await RunAnywhere.getModelPath('piper-en-us');
+if (ttsModelPath) {
+  await RunAnywhere.loadTTSModel(ttsModelPath);
+}
 
 // Synthesize speech
 const audioData = await RunAnywhere.synthesize('Hello from RunAnywhere!');
@@ -174,31 +174,39 @@ const audioData = await RunAnywhere.synthesize('Hello from RunAnywhere!');
 ### Voice Agent Pipeline
 
 ```typescript
-// Initialize voice agent
-const agent = await RunAnywhere.createVoiceAgent({
-  llmModelId: 'smollm2-360m-q8_0',
-  sttModelId: 'whisper-tiny',
-  ttsModelId: 'piper-en-us',
+// Create a voice session (models must already be loaded)
+const session = RunAnywhere.createVoiceSession({
+  systemPrompt: 'You are a helpful voice assistant.',
+  continuousMode: true,
 });
 
 // Start listening
-await agent.start();
+await session.start();
 
-// Handle events
-agent.on('transcription', (text) => {
-  console.log('User:', text);
+// Handle events via addEventListener
+session.addEventListener((event) => {
+  switch (event.type) {
+    case 'transcribed':
+      console.log('User:', event.transcription);
+      break;
+    case 'responded':
+      console.log('AI:', event.response);
+      break;
+    case 'speaking':
+      // AI audio is playing
+      break;
+  }
 });
 
-agent.on('response', (text) => {
-  console.log('AI:', text);
-});
-
-agent.on('audio', (audioData) => {
-  // Play audio
-});
+// Or use the async iterator pattern
+for await (const event of session.events()) {
+  if (event.type === 'transcribed') console.log('User:', event.transcription);
+  if (event.type === 'responded') console.log('AI:', event.response);
+  if (event.type === 'stopped') break;
+}
 
 // Stop
-await agent.stop();
+session.stop();
 ```
 
 ## Configuration
@@ -382,7 +390,7 @@ await RunAnywhere.initialize({
 
 ```typescript
 const result = await RunAnywhere.generate(prompt);
-console.log('Tokens/sec:', result.tokensPerSecond);
+console.log('Tokens/sec:', result.performanceMetrics?.tokensPerSecond);
 console.log('Latency:', result.latencyMs);
 console.log('Memory:', result.memoryUsed);
 
@@ -437,7 +445,8 @@ if (deviceMemory < modelInfo.memoryRequirement * 2) {
 
 ```typescript
 // Use streaming for better UX
-for await (const token of RunAnywhere.generateStream(prompt)) {
+const streamResult = await RunAnywhere.generateStream(prompt);
+for await (const token of streamResult.stream) {
   // Update UI immediately
   setText(prev => prev + token);
 }

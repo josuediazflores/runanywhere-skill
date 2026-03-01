@@ -1,6 +1,6 @@
 ---
 name: runanywhere-ai
-description: Integrate RunAnywhere on-device AI (LLMs, STT, TTS, voice agents) into applications. Use when implementing offline AI features, local LLM inference, on-device speech processing, privacy-first AI, or when mentions of "RunanywhereAI", "on-device AI", "local inference", "offline AI", "GGUF models", or "llama.cpp" appear. Supports Swift (iOS/macOS), Kotlin (Android), Web (WebAssembly), React Native, and Flutter platforms.
+description: Integrate RunAnywhere on-device AI (LLMs, STT, TTS, voice agents, VLM) into applications. Use when implementing offline AI features, local LLM inference, on-device speech processing, privacy-first AI, vision language models, or when mentions of "RunanywhereAI", "on-device AI", "local inference", "offline AI", "GGUF models", "llama.cpp", "VLM", or "on-device vision" appear. Supports Swift (iOS/macOS), Kotlin (Android), Web (WebAssembly), React Native, and Flutter platforms.
 ---
 
 # RunAnywhere AI Integration
@@ -10,11 +10,12 @@ Comprehensive guide for integrating RunAnywhere on-device AI into your applicati
 ## What is RunAnywhere?
 
 RunAnywhere enables privacy-first, on-device AI inference for:
-- **LLM Text Generation** - Run Llama, Mistral, Qwen, SmolLM locally via llama.cpp
+- **LLM Text Generation** - Run LFM2, Llama, Mistral, Qwen, SmolLM locally via llama.cpp
+- **Vision Language Models (VLM)** - On-device visual understanding with camera/image input (iOS/Web)
 - **Speech-to-Text** - Whisper-based transcription
 - **Text-to-Speech** - Neural voice synthesis via Piper
 - **Voice Agent Pipeline** - Complete VAD → STT → LLM → TTS orchestration
-- **Vision Language Models** - Visual understanding (iOS/Web only)
+- **Tool Calling & Structured Output** - Function calling and JSON schema-guided generation
 
 All processing happens locally—no cloud, no latency, no data leaves the device.
 
@@ -43,9 +44,10 @@ Read [models.md](references/models.md) for:
 - Download URLs
 
 **Quick recommendations:**
-- **Lightweight** (< 1GB RAM): SmolLM2 360M, Qwen 0.5B
-- **Balanced** (1-4GB RAM): Llama 3.2 1B
+- **Lightweight** (< 1GB RAM): LFM2 350M, SmolLM2 360M, Qwen 0.5B
+- **Balanced** (1-4GB RAM): LFM2 1.2B Tool, Llama 3.2 1B
 - **High Quality** (4GB+ RAM): Llama 3.2 3B, Mistral 7B
+- **Vision (VLM)**: LFM2-VL 450M (iOS/Web only)
 
 ### 3. Core Integration Pattern
 
@@ -92,11 +94,21 @@ Platform-specific implementation details are in each reference guide.
 ### Deploy On-Device LLM to Web
 
 1. Read [web.md](references/web.md)
-2. Install `@runanywhere/web` via npm
+2. Install `@runanywhere/web`, `@runanywhere/web-llamacpp`, and `@runanywhere/web-onnx` via npm
 3. Configure bundler (Vite/Webpack) for WASM files
 4. Set Cross-Origin headers for SharedArrayBuffer
-5. Load GGUF model with `TextGeneration.loadModel()`
-6. Generate with streaming for responsive UX
+5. Register `LlamaCPP` and `ONNX` backends
+6. Register models with `RunAnywhere.registerModels()`
+7. Generate with streaming via `TextGeneration.generateStream()`
+
+### Add Vision Language Model (VLM) to Web App
+
+1. Read [web.md](references/web.md)
+2. Install 3-package Web SDK (`@runanywhere/web`, `@runanywhere/web-llamacpp`, `@runanywhere/web-onnx`)
+3. Create a VLM Web Worker with `startVLMWorkerRuntime()`
+4. Wire `VLMWorkerBridge` to `RunAnywhere.setVLMLoader()`
+5. Use `VideoCapture` to capture camera frames
+6. Process frames with `VLMWorkerBridge.shared.process(rgbPixels, width, height, prompt)`
 
 ## Key Concepts
 
@@ -109,10 +121,11 @@ Models are compressed using quantization:
 
 ### Model Formats
 
-- **LLM**: GGUF format (via llama.cpp)
-- **STT**: ONNX format (Whisper models)
-- **TTS**: ONNX format (Piper voices)
-- **VAD**: ONNX format (Silero VAD)
+- **LLM**: GGUF format (via llama.cpp) — `LLMFramework.LlamaCpp`
+- **VLM**: GGUF format (model + mmproj files) — `LLMFramework.LlamaCpp`
+- **STT**: ONNX format (Whisper models) — `LLMFramework.ONNX`
+- **TTS**: ONNX format (Piper voices) — `LLMFramework.ONNX`
+- **VAD**: ONNX format (Silero VAD v5) — `LLMFramework.ONNX`
 
 ### Memory Requirements
 
@@ -225,7 +238,7 @@ console.log()  // Standard browser console
 Each platform has a complete demo app:
 - iOS: [examples/ios/RunAnywhereAI/](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/ios/RunAnywhereAI)
 - Android: [examples/android/RunAnywhereAI/](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/android/RunAnywhereAI)
-- Web: [examples/web/RunAnywhereAI/](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/web/RunAnywhereAI)
+- Web: [web-starter-app](https://github.com/RunanywhereAI/web-starter-app) (Chat, Vision, Voice tabs)
 - React Native: [examples/react-native/RunAnywhereAI/](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/react-native/RunAnywhereAI)
 - Flutter: [examples/flutter/RunAnywhereAI/](https://github.com/RunanywhereAI/runanywhere-sdks/tree/main/examples/flutter/RunAnywhereAI)
 
@@ -234,13 +247,17 @@ Each platform has a complete demo app:
 | Task | Command/Method | Platform |
 |------|----------------|----------|
 | Initialize SDK | `RunAnywhere.initialize()` | All |
-| Download Model | `RunAnywhere.downloadModel(id)` | All |
-| Load Model | `RunAnywhere.loadModel(path)` | All |
-| Generate Text | `RunAnywhere.chat(prompt)` | All |
-| Stream Generation | `RunAnywhere.generateStream(prompt)` | All |
-| Transcribe Audio | `RunAnywhere.transcribe(audio)` | All |
-| Synthesize Speech | `RunAnywhere.synthesize(text)` | All |
-| Voice Agent | `RunAnywhere.startVoiceSession()` | All |
+| Register Backend | `LlamaCPP.register()` / `ONNX.register()` | Web |
+| Register Models | `RunAnywhere.registerModels(models)` | Web |
+| Download Model | `ModelManager.downloadModel(id)` | Web |
+| Load Model | `ModelManager.loadModel(id)` | Web |
+| Generate Text | `TextGeneration.generate(prompt)` | All |
+| Stream Generation | `TextGeneration.generateStream(prompt)` | All |
+| VLM Process | `VLMWorkerBridge.shared.process(rgb, w, h, prompt)` | iOS/Web |
+| Capture Camera | `VideoCapture.captureFrame(dim)` | Web |
+| Transcribe Audio | `STT.transcribe(audio)` | All |
+| Synthesize Speech | `TTS.synthesize(text)` | All |
+| Voice Agent | `VoicePipeline.start()` | All |
 
 ---
 
